@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: Wick's Forms and Things
+## Notes: Druid loadout kit for World of Warcraft: Forever. Smart travel form keybind with resource bar, talents, pre-pull checklist, racials.
+## Author: Wick
+## Version: 1.0.0
+## Dependencies: WickCore
+## SavedVariables: WicksFormsSaved
+## X-Website: https://wicksmods.com
+## X-WickCore: WickCore-1.0
+
+Bindings.xml
+Core.lua
+TravelForm.lua
+TravelFormUI.lua
