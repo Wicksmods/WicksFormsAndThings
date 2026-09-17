@@ -1,3 +1,3 @@
-<Bindings xmlns="http://www.blizzard.com/wow/ui/">
+<Bindings>
     <Binding name="CLICK WicksTravelFormButton:LeftButton" header="WICKSTRAVELFORM" category="ADDONS"/>
 </Bindings>
