@@ -129,7 +129,14 @@ btn:SetScript("OnEnter", function(self)
     GameTooltip:AddLine("Wick's Forms and Things", 0.31, 0.78, 0.47)
     local action
     if ns.isInManagedForm then
-        action = ns.isInManagedForm() and "Cancel form" or ("Will cast: " .. ns.predictForm())
+        if ns.isInManagedForm() then
+            action = "Cancel form"
+        else
+            local predicted = ns.predictForm()
+            -- Nothing to predict until the first form is learned.
+            action = predicted and ("Will cast: " .. predicted)
+                or "No forms learned yet. Cat Form is the first one."
+        end
     end
     GameTooltip:AddLine(action or "Initializing...", 0.83, 0.78, 0.63)
     GameTooltip:AddLine(" ")
@@ -416,7 +423,11 @@ function UI:Refresh()
         btn:SetAttribute("macrotext", m)
         btn:SetAttribute("macrotext1", m)
     end
-    btn.icon:SetTexture(ns.formIcon(ns.predictForm()))
+    local predicted = ns.predictForm()
+    btn.icon:SetTexture(ns.formIcon(predicted))
+    -- Grey the button out while there is no form to shift into.
+    btn.icon:SetDesaturated(predicted == nil)
+    btn.icon:SetAlpha(predicted and 1 or 0.4)
     self:UpdateBindLabel()
 end
 

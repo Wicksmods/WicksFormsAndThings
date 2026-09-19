@@ -27,8 +27,11 @@ local FORM_SPELL_ID = {
     [ns.FORMS.SWIFT]   = 40120,
 }
 
+-- A druid with no forms yet has nothing to predict, so fall back to a
+-- placeholder rather than handing the button a nil texture.
 function ns.formIcon(name)
-    return D.GetSpellTexture(FORM_SPELL_ID[name] or 0)
+    return D.GetSpellTexture(FORM_SPELL_ID[name or ""] or 0)
+        or "Interface\\Icons\\INV_Misc_QuestionMark"
 end
 
 -- =====================================================================
