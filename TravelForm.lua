@@ -96,8 +96,14 @@ end
 -- Predict which form a press will resolve to (used for the icon preview
 -- and tooltip — the actual cast resolution is done by the macro itself).
 -- =====================================================================
+-- A druid learns these over twenty levels, so nothing may be known yet.
+function ns.knowsForm(name)
+    local id = FORM_SPELL_ID[name]
+    return id ~= nil and D.IsSpellKnown(id)
+end
+
 function ns.predictForm()
-    if IsSwimming() then return ns.FORMS.AQUATIC end
+    if IsSwimming() and ns.knowsForm(ns.FORMS.AQUATIC) then return ns.FORMS.AQUATIC end
     local fly = ns.bestFlightForm()
     if fly and ns.isFlyableIndoorZone() and not InCombatLockdown() then
         return fly
@@ -106,9 +112,13 @@ function ns.predictForm()
         if fly and ns.isFlyableZone() and not InCombatLockdown() then
             return fly
         end
-        return ns.FORMS.TRAVEL
+        if ns.knowsForm(ns.FORMS.TRAVEL) then return ns.FORMS.TRAVEL end
     end
-    return ns.FORMS.CAT
+    if ns.knowsForm(ns.FORMS.CAT) then return ns.FORMS.CAT end
+    -- Indoors with only Travel known: the press still has something to do.
+    if ns.knowsForm(ns.FORMS.TRAVEL) then return ns.FORMS.TRAVEL end
+    if ns.knowsForm(ns.FORMS.AQUATIC) then return ns.FORMS.AQUATIC end
+    return nil
 end
 
 local MANAGED_SPELL_IDS = {
@@ -157,21 +167,32 @@ function ns.buildMacro()
     -- in (powershift prevention). Cross-form transitions (e.g. Cat -> Flight) work
     -- with a direct /cast — TBC transitions the form in a single GCD.
     local current = ns.currentManagedForm()
-    if current and current == ns.predictForm() then
+    local predicted = ns.predictForm()
+    if current and predicted and current == predicted then
         return "/cancelform"
     end
-    local clauses = { "[swimming] " .. ns.FORMS.AQUATIC }
+    -- Only offer forms the druid has actually learned, otherwise a young
+    -- druid's key press casts spells they do not have.
+    local clauses = {}
+    if ns.knowsForm(ns.FORMS.AQUATIC) then
+        clauses[#clauses + 1] = "[swimming] " .. ns.FORMS.AQUATIC
+    end
     local fly = ns.bestFlightForm()
     if fly then
         if ns.isFlyableIndoorZone() then
             -- Shattrath and similar: flyable but IsOutdoors() returns false.
-            table.insert(clauses, ("[nocombat] %s"):format(fly))
+            clauses[#clauses + 1] = ("[nocombat] %s"):format(fly)
         elseif ns.isFlyableZone() then
-            table.insert(clauses, ("[nocombat,outdoors] %s"):format(fly))
+            clauses[#clauses + 1] = ("[nocombat,outdoors] %s"):format(fly)
         end
     end
-    table.insert(clauses, "[outdoors] " .. ns.FORMS.TRAVEL)
-    table.insert(clauses, ns.FORMS.CAT)
+    if ns.knowsForm(ns.FORMS.TRAVEL) then
+        clauses[#clauses + 1] = "[outdoors] " .. ns.FORMS.TRAVEL
+    end
+    if ns.knowsForm(ns.FORMS.CAT) then
+        clauses[#clauses + 1] = ns.FORMS.CAT
+    end
+    if #clauses == 0 then return "" end
     return "/cast " .. table.concat(clauses, "; ")
 end
 
