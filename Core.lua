@@ -84,6 +84,8 @@ function A:OnInitialize()
         if ns.UI and ns.UI.Activate and ns.isDruid then ns.UI:Activate() end
     end)
 
+    Core.Cooldowns:New(self, { key = "cooldownBar" })
+
     Core.Kit:New(self, {
         racials = true,
         checklist = {
@@ -120,6 +122,8 @@ function A:OnEnable()
         end,
     })
 
+    if self.cooldowns then self.cooldowns:Init() end
+
     self:RegisterOptions(function(page, addon)
         local O = Core.Options
         local db = WicksTravelFormDB
@@ -136,6 +140,7 @@ function A:OnEnable()
             function(v) db.barFloat = v; if ns.ApplyFloatBarLayout then ns.ApplyFloatBarLayout() end end, y)
         y = O:Note(page, "Size and bar geometry: /wft size <32-96>, /wft bar. Right-click the button to unlock and drag.", y)
         y = O:Button(page, "Open kit", function() addon.kit:Toggle() end, y, 100)
+        if addon.cooldowns then y = addon.cooldowns:OptionRow(page, y - 6) end
         y = O:ProfileSection(page, addon, y - 8)
     end)
 end
@@ -149,6 +154,7 @@ _G["BINDING_NAME_CLICK WicksTravelFormButton:LeftButton"] = "Smart travel form"
 A:RegisterSlash(function(_, msg)
     msg = (msg or ""):lower()
     if msg == "kit" or msg == "talents" or msg == "checklist" then A.kit:Toggle() return end
+    if msg == "cd" or msg:match("^cd%s") then return A.cooldowns:Command(msg:match("^%a+%s*(.*)$")) end
     if msg == "options" or msg == "config" then A:OpenOptions() return end
     if not ns.isDruid then A:Print("druids only.") return end
     local db = WicksTravelFormDB
