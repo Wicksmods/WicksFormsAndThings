@@ -425,9 +425,21 @@ function UI:Refresh()
     end
     local predicted = ns.predictForm()
     btn.icon:SetTexture(ns.formIcon(predicted))
-    -- Grey the button out while there is no form to shift into.
     btn.icon:SetDesaturated(predicted == nil)
     btn.icon:SetAlpha(predicted and 1 or 0.4)
+    -- A druid below level eight has no form to shift into, so the button
+    -- has nothing to do and stays out of the way until one is learned.
+    -- SPELLS_CHANGED brings it back. A protected frame cannot be shown or
+    -- hidden in combat, so that is left for the next refresh.
+    if not InCombatLockdown() then
+        local wanted = predicted ~= nil
+        if wanted ~= host:IsShown() then
+            host:SetShown(wanted)
+            if wanted then btn:Show() end
+            ApplyBarLayout()
+            ApplyFloatBarLayout()
+        end
+    end
     self:UpdateBindLabel()
 end
 
@@ -450,9 +462,9 @@ function UI:Activate()
     self:ApplyChrome()
     ApplyBarLayout()
     ApplyFloatBarLayout()
-    self:Refresh()
     host:Show()
     btn:Show()
+    self:Refresh()   -- may hide it again when no form is known yet
 end
 
 -- Called when we know the player isn't a druid — hide everything.
