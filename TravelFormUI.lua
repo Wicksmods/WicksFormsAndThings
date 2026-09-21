@@ -7,6 +7,7 @@
 -- lock state are applied later from saved variables once they're loaded.
 
 local _, ns = ...
+local Chrome = WickCore.Chrome
 local UI = {}
 ns.UI = UI
 
@@ -114,7 +115,10 @@ local moveTint = newTex(btn, "OVERLAY", C_MOVE); moveTint:SetAllPoints(btn); mov
 -- for drag and forwards StartMoving/StopMoving to host so the visual is
 -- consistent (you grab the button, the whole thing moves).
 btn:RegisterForDrag("LeftButton")
-btn:SetScript("OnDragStart", function() if not locked then host:StartMoving() end end)
+btn:SetScript("OnDragStart", function()
+    -- A lock stops a nudge, not a deliberate move: shift overrides it.
+    if Chrome:DragAllowed(locked) then host:StartMoving() end
+end)
 btn:SetScript("OnDragStop",  function()
     host:StopMovingOrSizing()
     if WicksTravelFormDB then
@@ -319,7 +323,7 @@ addCornerAccents(floatBar)
 floatBar:EnableMouse(true)
 floatBar:RegisterForDrag("LeftButton")
 floatBar:SetScript("OnDragStart", function(self)
-    if not locked then self:StartMoving() end
+    if Chrome:DragAllowed(locked) then self:StartMoving() end
 end)
 floatBar:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
