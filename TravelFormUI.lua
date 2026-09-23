@@ -6,6 +6,7 @@
 -- so it exists before any event handler can reference it. Position and
 -- lock state are applied later from saved variables once they're loaded.
 
+if not WickCore then return end   -- said once in Core.lua
 local _, ns = ...
 local Chrome = WickCore.Chrome
 local UI = {}

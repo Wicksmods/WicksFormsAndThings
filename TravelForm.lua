@@ -4,6 +4,7 @@
 -- Core.lua on WickCore; this file keeps the part that decides which form.
 
 local ADDON, ns = ...
+if not WickCore then return end   -- said once in Core.lua
 local D = WickCore.Dialect
 
 ns.MIN_SIZE, ns.MAX_SIZE = 32, 96
