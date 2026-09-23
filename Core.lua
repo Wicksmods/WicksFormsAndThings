@@ -38,7 +38,7 @@ if not Core then
 end
 local D, R = Core.Dialect, Core.Restrict
 
-ns.version = "1.0.0"
+ns.version = "0.9.0"
 
 local PROFILE_DEFAULTS = {
     point = "CENTER", relativePoint = "CENTER", x = 0, y = -120,
