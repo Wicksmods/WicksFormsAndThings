@@ -26,7 +26,7 @@ local C = Chrome.Colors
 local C_BG     = C.voidBG
 local C_BORDER = C.border
 local C_GREEN  = C.fel
-local C_HOVER  = { 0.310, 0.780, 0.471, 0.10 }
+local C_HOVER  = Chrome:Wash("fel", 0.10)
 local C_MOVE   = { 0.640, 0.210, 0.930, 0.20 }
 
 local BRACKET, ARM = 10, 2
