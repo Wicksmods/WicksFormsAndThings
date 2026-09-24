@@ -16,18 +16,25 @@ ns.UI = UI
 -- Wick brand palette (locked)
 -- Fel #4FC778 · Void #0D0A14 · Border #383058 · Off-White #D4C8A1
 -- =====================================================================
-local C_BG     = { 0.051, 0.039, 0.078, 0.97 }
-local C_BORDER = { 0.220, 0.188, 0.345, 1 }
-local C_GREEN  = { 0.310, 0.780, 0.471, 1 }
+-- The palette by reference, not by value. These used to be copies
+-- holding the same numbers, which looks identical and behaves
+-- differently: Chrome remembers a region by the identity of the colour
+-- table it was painted with, so a copy never enters the registry and
+-- never repaints when the player changes theme. Nothing in this file
+-- followed a theme, and this is why.
+local C = Chrome.Colors
+local C_BG     = C.voidBG
+local C_BORDER = C.border
+local C_GREEN  = C.fel
 local C_HOVER  = { 0.310, 0.780, 0.471, 0.10 }
 local C_MOVE   = { 0.640, 0.210, 0.930, 0.20 }
 
 local BRACKET, ARM = 10, 2
 
+-- Chrome's, so the region is registered and follows a theme. The hand
+-- rolled version that was here painted the same colour and told nobody.
 local function newTex(parent, layer, c)
-    local t = parent:CreateTexture(nil, layer)
-    t:SetColorTexture(unpack(c))
-    return t
+    return Chrome:Texture(parent, layer, c)
 end
 
 local function addBorder(f)
@@ -199,10 +206,13 @@ local function barMargin()  return (WicksTravelFormDB and WicksTravelFormDB.barM
 local function fbarH()      return (WicksTravelFormDB and WicksTravelFormDB.barFloatSegH) or BAR_H_DEFAULT      end
 local function fbarGap()    return (WicksTravelFormDB and WicksTravelFormDB.barFloatGap)  or BAR_GAP_DEFAULT    end
 
-local C_RAGE   = { 1.00, 0.49, 0.10, 1 }
-local C_ENERGY = { 1.00, 0.82, 0.10, 1 }
-local C_MANA   = { 0.31, 0.52, 0.90, 1 }
-local C_DIM_BG = { 0.10, 0.10, 0.12, 0.6 }
+-- Two bars, two palette tokens. The power colours that were here are
+-- not in the palette and cannot be themed, which is the whole of the
+-- complaint: a blue mana bar on a green UI. All the colour was doing
+-- was telling the two bars apart, and the accent against the border
+-- purple does that while still answering to a theme.
+local C_PRIMARY = C.fel
+local C_MANA    = C.border
 
 -- Power type constants (UnitPowerType returns these)
 local POWER_MANA   = 0
@@ -213,20 +223,23 @@ local POWER_ENERGY = 3
 -- Shared draw logic — operates on whichever bar frame is passed in.
 -- Each bar frame has .priTrack, .priFill, .manaTrack, .manaFill children.
 -- =====================================================================
-local WHITE = "Interface\\Buttons\\WHITE8X8"
-local function makeBar(f)
+local function makeBar(f, colour)
     local sb = CreateFrame("StatusBar", nil, f)
-    sb:SetStatusBarTexture(WHITE)
+    -- A plain colour rather than an art path: a texture file that
+    -- resolves to nothing leaves the bar looking permanently empty.
+    local fill = Chrome:Texture(sb, "ARTWORK", colour)
+    sb:SetStatusBarTexture(fill)
     sb:SetMinMaxValues(0, 1)
     sb:SetValue(0)
-    local bg = sb:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints(); bg:SetColorTexture(unpack(C_DIM_BG))
+    local bg = Chrome:Texture(sb, "BACKGROUND", C.void)
+    bg:SetAllPoints()
     return sb
 end
 local function MakeBarChildren(f)
     -- StatusBars, not textures: SetMinMaxValues and SetValue accept secret
     -- values, which is what the player's power is on Forever.
-    f.priTrack  = makeBar(f)
-    f.manaTrack = makeBar(f)
+    f.priTrack  = makeBar(f, C_PRIMARY)
+    f.manaTrack = makeBar(f, C_MANA)
     f.priFill   = f.priTrack
     f.manaFill  = f.manaTrack
 end
@@ -247,11 +260,14 @@ local function LayoutBarChildren(f, w, h, g, pad)
 
 end
 
-local function setBar(sb, cur, max, color, alpha)
+local function setBar(sb, cur, max, alpha)
     -- Pass values straight through; never compare or divide them.
     pcall(sb.SetMinMaxValues, sb, 0, max)
     pcall(sb.SetValue, sb, cur)
-    sb:SetStatusBarColor(color[1], color[2], color[3], alpha or 1)
+    -- Alpha on the frame, not on the fill. SetStatusBarColor would
+    -- overwrite the colour Chrome registered and quietly drop the bar
+    -- back out of the theme, which is the bug this is fixing.
+    sb:SetAlpha(alpha or 1)
 end
 
 local function DrawBar(f)
@@ -259,12 +275,12 @@ local function DrawBar(f)
     local mana, manaMax = UnitPower("player", POWER_MANA), UnitPowerMax("player", POWER_MANA)
 
     if powerType == POWER_RAGE then
-        setBar(f.priTrack, UnitPower("player", POWER_RAGE), UnitPowerMax("player", POWER_RAGE), C_RAGE, 1)
-        setBar(f.manaTrack, mana, manaMax, C_MANA, 0.45)
+        setBar(f.priTrack, UnitPower("player", POWER_RAGE), UnitPowerMax("player", POWER_RAGE), 1)
+        setBar(f.manaTrack, mana, manaMax, 0.45)
         f.manaTrack:Show()
     elseif powerType == POWER_ENERGY then
-        setBar(f.priTrack, UnitPower("player", POWER_ENERGY), UnitPowerMax("player", POWER_ENERGY), C_ENERGY, 1)
-        setBar(f.manaTrack, mana, manaMax, C_MANA, 0.45)
+        setBar(f.priTrack, UnitPower("player", POWER_ENERGY), UnitPowerMax("player", POWER_ENERGY), 1)
+        setBar(f.manaTrack, mana, manaMax, 0.45)
         f.manaTrack:Show()
     else
         local formIndex = GetShapeshiftForm()
@@ -273,7 +289,7 @@ local function DrawBar(f)
             local formName = GetShapeshiftFormInfo(formIndex)
             isMoonkin = (formName == "Moonkin Form")
         end
-        setBar(f.priTrack, mana, manaMax, C_MANA, isMoonkin and 1 or 0.55)
+        setBar(f.priTrack, mana, manaMax, isMoonkin and 1 or 0.55)
         f.manaTrack:Hide()
     end
 end
